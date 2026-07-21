@@ -77,7 +77,7 @@ O projeto foi desenvolvido para utilização em um ambiente real, permitindo o c
 
 ## Tratamento de erro
 
-![TRATAMENTO_DE_ERRO](screenshots/tratamento_de_erro_OS.png)
+![TRATAMENTO_DE_ERRO](screenshots/tratamento_de_erro_os.png)
 
 ---
 
