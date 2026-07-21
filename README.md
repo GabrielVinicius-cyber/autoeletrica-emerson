@@ -75,11 +75,13 @@ O projeto foi desenvolvido para utilização em um ambiente real, permitindo o c
 
 ---
 
-## Detalhes_OS
+## Tratamento de erro
 
-![DETALHES_NOVA_OS](screenshots/detalhe_OS.png)
+![TRATAMENTO_DE_ERRO](screenshots/tratamento_de_erro_OS.png)
 
 ---
+
+![HISTORICO_OS](screenshots/historico_os.png)
 
 ## Financeiro
 
@@ -87,13 +89,7 @@ O projeto foi desenvolvido para utilização em um ambiente real, permitindo o c
 
 ---
 
-## Resumo finan
-
-![RESUMO_FINANCEIRO](screenshots/resumo_finan.png)
-
----
-
-## Despesas Finan
+## Despesas Financeiro
 
 ![ABA_DESPESAS](screenshots/despesas_finan.png)
 
