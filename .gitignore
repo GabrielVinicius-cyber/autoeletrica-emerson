@@ -1,0 +1,27 @@
+# Ambiente virtual
+venv/
+
+# Cache do Python
+__pycache__/
+*.pyc
+
+# Banco de dados local
+autoeletrica.db
+build/
+dist/
+*.spec
+
+# PDFs gerados pelo sistema
+OS_PDFs/
+
+# Arquivos do PyInstaller
+build/
+dist/
+*.spec
+
+# Arquivos do sistema operacional
+.DS_Store
+Thumbs.db
+
+# VS Code (opcional)
+.vscode/
