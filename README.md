@@ -81,7 +81,11 @@ O projeto foi desenvolvido para utilização em um ambiente real, permitindo o c
 
 ---
 
+## Historico OS
+
 ![HISTORICO_OS](screenshots/historico_os.png)
+
+---
 
 ## Financeiro
 
@@ -97,7 +101,7 @@ O projeto foi desenvolvido para utilização em um ambiente real, permitindo o c
 
 ## Aba fiado
 
-![ABA_FIADO](fiado_finan.png)
+![ABA_FIADO](screenshots/fiado_finan.png)
 
 ---
 
