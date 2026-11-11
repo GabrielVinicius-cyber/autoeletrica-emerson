@@ -182,6 +182,21 @@ def buscar_cliente(id_cliente):
     conn.close()
     return cliente
 
+def contar_clientes_busca(texto=""):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM clientes
+        WHERE nome LIKE ?
+    """, (f"%{texto}%",))
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+    return total
+
 
 def atualizar_cliente(id_cliente, nome, telefone):
     conn = conectar()
@@ -1511,3 +1526,226 @@ def calcular_fluxo_caixa(data_inicio, data_fim):
         dia_atual += timedelta(days=1)
 
     return fluxo
+def contar_clientes_busca(texto=""):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM clientes
+        WHERE nome LIKE ?
+    """, (f"%{texto}%",))
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+    return total
+
+
+def listar_clientes_paginado(texto, limite, offset):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id, nome, telefone
+        FROM clientes
+        WHERE nome LIKE ?
+        ORDER BY nome
+        LIMIT ? OFFSET ?
+    """, (f"%{texto}%", limite, offset))
+
+    clientes = cursor.fetchall()
+
+    conn.close()
+    return clientes
+
+def contar_veiculos_busca(texto=""):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM veiculos
+        JOIN clientes
+            ON clientes.id = veiculos.cliente_id
+        WHERE veiculos.modelo LIKE ?
+        OR veiculos.placa LIKE ?
+        OR clientes.nome LIKE ?
+    """, (f"%{texto}%", f"%{texto}%", f"%{texto}%"))
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+    return total
+
+
+def listar_veiculos_paginado(texto, limite, offset):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            veiculos.id,
+            clientes.nome,
+            veiculos.modelo,
+            veiculos.placa
+        FROM veiculos
+        JOIN clientes
+            ON clientes.id = veiculos.cliente_id
+        WHERE veiculos.modelo LIKE ?
+        OR veiculos.placa LIKE ?
+        OR clientes.nome LIKE ?
+        ORDER BY veiculos.id DESC
+        LIMIT ? OFFSET ?
+    """, (
+        f"%{texto}%",
+        f"%{texto}%",
+        f"%{texto}%",
+        limite,
+        offset
+    ))
+
+    veiculos = cursor.fetchall()
+
+    conn.close()
+    return veiculos
+
+
+def contar_ordens_entregues_busca(texto=""):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM ordens_de_servico
+        JOIN clientes
+            ON clientes.id = ordens_de_servico.cliente_id
+        JOIN veiculos
+            ON veiculos.id = ordens_de_servico.veiculo_id
+        WHERE ordens_de_servico.status = 'Entregue'
+        AND (
+            clientes.nome LIKE ?
+            OR veiculos.modelo LIKE ?
+            OR veiculos.placa LIKE ?
+            OR CAST(ordens_de_servico.id AS TEXT) LIKE ?
+        )
+    """, (
+        f"%{texto}%",
+        f"%{texto}%",
+        f"%{texto}%",
+        f"%{texto}%"
+    ))
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+    return total
+
+
+def buscar_ordens_entregues_paginado(texto, limite, offset):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            ordens_de_servico.id,
+            clientes.nome,
+            veiculos.modelo,
+            ordens_de_servico.descricao,
+            ordens_de_servico.mao_obra,
+            ordens_de_servico.status
+        FROM ordens_de_servico
+        JOIN clientes
+            ON clientes.id = ordens_de_servico.cliente_id
+        JOIN veiculos
+            ON veiculos.id = ordens_de_servico.veiculo_id
+        WHERE ordens_de_servico.status = 'Entregue'
+        AND (
+            clientes.nome LIKE ?
+            OR veiculos.modelo LIKE ?
+            OR veiculos.placa LIKE ?
+            OR CAST(ordens_de_servico.id AS TEXT) LIKE ?
+        )
+        ORDER BY ordens_de_servico.id DESC
+        LIMIT ? OFFSET ?
+    """, (
+        f"%{texto}%",
+        f"%{texto}%",
+        f"%{texto}%",
+        f"%{texto}%",
+        limite,
+        offset
+    ))
+
+    ordens = cursor.fetchall()
+
+    conn.close()
+    return ordens
+
+
+def listar_ordens_de_servico_paginado(limite, offset):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            ordens_de_servico.id,
+            clientes.nome,
+            veiculos.modelo,
+            ordens_de_servico.descricao,
+            ordens_de_servico.mao_obra,
+            ordens_de_servico.status
+        FROM ordens_de_servico
+        JOIN clientes
+            ON clientes.id = ordens_de_servico.cliente_id
+        JOIN veiculos
+            ON veiculos.id = ordens_de_servico.veiculo_id
+        WHERE ordens_de_servico.status != 'Entregue'
+        ORDER BY ordens_de_servico.id DESC
+        LIMIT ? OFFSET ?
+    """, (limite, offset))
+
+    ordens = cursor.fetchall()
+
+    conn.close()
+    return ordens
+
+
+def contar_pecas_busca(texto=""):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT COUNT(*)
+        FROM estoque
+        WHERE nome LIKE ?
+    """, (f"%{texto}%",))
+
+    total = cursor.fetchone()[0]
+
+    conn.close()
+    return total
+
+
+def listar_pecas_paginado(texto, limite, offset):
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            id,
+            nome,
+            quantidade,
+            valor_custo,
+            valor_venda,
+            estoque_minimo
+        FROM estoque
+        WHERE nome LIKE ?
+        ORDER BY nome
+        LIMIT ? OFFSET ?
+    """, (f"%{texto}%", limite, offset))
+
+    pecas = cursor.fetchall()
+
+    conn.close()
+    return pecas

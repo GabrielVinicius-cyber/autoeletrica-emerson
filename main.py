@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import datetime
 import os
+import math
 from PIL import Image
 from tkinter import messagebox
 from pdf_os import gerar_pdf_os, abrir_pdf
@@ -57,7 +58,16 @@ from database import (
     atualizar_cliente,
     apagar_cliente,
     registrar_pagamento_fiado,
-    listar_pagamentos_fiado
+    listar_pagamentos_fiado,
+    contar_clientes_busca,
+    listar_clientes_paginado,
+    contar_veiculos_busca,
+    listar_veiculos_paginado,
+    contar_ordens_entregues_busca,
+    buscar_ordens_entregues_paginado,
+    listar_ordens_de_servico_paginado,
+    contar_pecas_busca,
+    listar_pecas_paginado
 
 )
 
@@ -88,6 +98,8 @@ COR_TEXTO_SECUNDARIO = "#8b949e"
 COR_POSITIVO = "#3fb950"
 COR_ALERTA = "#f85149"
 
+ITENS_POR_PAGINA = 20
+
 STATUS_CORES = {
     "Aberta": "#8b949e",
     "Em diagnóstico": "#d29922",
@@ -110,6 +122,7 @@ class AutoEletricaApp(ctk.CTk):
         self.title("Auto Elétrica Emerson")
         self.geometry("1400x900")
 
+        self.paginas = {}
         self.criar_layout()
 
     def preparar_janela(self, janela):
@@ -233,6 +246,107 @@ class AutoEletricaApp(ctk.CTk):
 
         for widget in self.content_frame.winfo_children():
             widget.destroy()
+
+    def criar_paginacao(self, parent, pagina_atual, total_paginas, total_itens, ao_mudar):
+        btn_anterior = ctk.CTkButton(
+            parent,
+            text="◀ Anterior",
+            width=110,
+            fg_color=COR_AZUL_ATIVO,
+            hover_color="#1a5fc4",
+            state="normal" if pagina_atual > 1 else "disabled",
+            command=lambda: ao_mudar(pagina_atual - 1)
+        )
+        btn_anterior.pack(
+            side="left",
+            padx=10
+        )
+
+        info_label = ctk.CTkLabel(
+            parent,
+            text=f"Página {pagina_atual} de {total_paginas}  ({total_itens} itens)",
+            text_color=COR_TEXTO_SECUNDARIO
+        )
+        info_label.pack(
+            side="left",
+            padx=10
+        )
+
+        btn_proxima = ctk.CTkButton(
+            parent,
+            text="Próxima ▶",
+            width=110,
+            fg_color=COR_AZUL_ATIVO,
+            hover_color="#1a5fc4",
+            state="normal" if pagina_atual < total_paginas else "disabled",
+            command=lambda: ao_mudar(pagina_atual + 1)
+        )
+        btn_proxima.pack(
+            side="left",
+            padx=10
+        )
+
+    def atualizar_lista_paginada(
+        self,
+        chave,
+        texto,
+        contar,
+        listar,
+        carregar,
+        scroll,
+        frame_paginacao
+    ):
+        total = contar(texto)
+        total_paginas = max(1, math.ceil(total / ITENS_POR_PAGINA))
+
+        pagina = min(self.paginas.get(chave, 1), total_paginas)
+        self.paginas[chave] = pagina
+
+        offset = (pagina - 1) * ITENS_POR_PAGINA
+        itens = listar(texto, ITENS_POR_PAGINA, offset)
+
+        for widget in scroll.winfo_children():
+            widget.destroy()
+
+        if not itens:
+            vazio = ctk.CTkLabel(
+                scroll,
+                text="Nenhum item encontrado.",
+                text_color=COR_TEXTO_SECUNDARIO
+            )
+            vazio.pack(
+                pady=20
+            )
+        else:
+            carregar(itens, scroll)
+
+        try:
+            scroll._parent_canvas.yview_moveto(0)
+        except Exception:
+            pass
+
+        for widget in frame_paginacao.winfo_children():
+            widget.destroy()
+
+        def ao_mudar(nova_pagina):
+            self.paginas[chave] = nova_pagina
+            self.atualizar_lista_paginada(
+                chave,
+                texto,
+                contar,
+                listar,
+                carregar,
+                scroll,
+                frame_paginacao
+            )
+
+        self.criar_paginacao(
+            frame_paginacao,
+            pagina,
+            total_paginas,
+            total,
+            ao_mudar
+        )
 
     # DASHBOARD
 
@@ -798,6 +912,17 @@ class AutoEletricaApp(ctk.CTk):
             side="left"
         )
 
+        self.paginas["clientes"] = 1
+
+        self.frame_paginacao_clientes = ctk.CTkFrame(
+            self.content_frame,
+            fg_color="transparent"
+        )
+        self.frame_paginacao_clientes.pack(
+            side="bottom",
+            pady=10
+        )
+
         self.scroll_clientes = ctk.CTkScrollableFrame(
             self.content_frame,
             width=600,
@@ -811,11 +936,7 @@ class AutoEletricaApp(ctk.CTk):
             pady=(10, 20)
         )
 
-        clientes = listar_clientes()
-        self.carregar_lista_clientes(
-            clientes,
-            self.scroll_clientes
-        )
+        self.atualizar_lista_clientes()
 
     def carregar_lista_clientes(self, clientes, scroll):
         for widget in scroll.winfo_children():
@@ -915,13 +1036,20 @@ class AutoEletricaApp(ctk.CTk):
                 side="left"
             )
 
-    def pesquisar_cliente(self, event=None):
-        texto = self.pesquisa_cliente_entry.get()
-        resultado = buscar_clientes(texto)
-        self.carregar_lista_clientes(
-            resultado,
-            self.scroll_clientes
+    def atualizar_lista_clientes(self):
+        self.atualizar_lista_paginada(
+            "clientes",
+            self.pesquisa_cliente_entry.get(),
+            contar_clientes_busca,
+            listar_clientes_paginado,
+            self.carregar_lista_clientes,
+            self.scroll_clientes,
+            self.frame_paginacao_clientes
         )
+
+    def pesquisar_cliente(self, event=None):
+        self.paginas["clientes"] = 1
+        self.atualizar_lista_clientes()
 
     def editar_cliente(self, id_cliente):
         janela = ctk.CTkToplevel(self)
@@ -1199,6 +1327,17 @@ class AutoEletricaApp(ctk.CTk):
             side="left"
         )
 
+        self.paginas["veiculos"] = 1
+
+        self.frame_paginacao_veiculos = ctk.CTkFrame(
+            self.content_frame,
+            fg_color="transparent"
+        )
+        self.frame_paginacao_veiculos.pack(
+            side="bottom",
+            pady=10
+        )
+
         self.scroll_veiculos = ctk.CTkScrollableFrame(
             self.content_frame,
             width=650,
@@ -1212,11 +1351,7 @@ class AutoEletricaApp(ctk.CTk):
             pady=(10, 20)
         )
 
-        veiculos = listar_veiculos()
-        self.carregar_lista_veiculos(
-            veiculos,
-            self.scroll_veiculos
-        )
+        self.atualizar_lista_veiculos()
 
     def carregar_lista_veiculos(self, veiculos, scroll):
         for widget in scroll.winfo_children():
@@ -1316,13 +1451,20 @@ class AutoEletricaApp(ctk.CTk):
                 side="left"
             )
 
-    def pesquisar_veiculo(self, event=None):
-        texto = self.pesquisa_veiculo_entry.get()
-        resultado = buscar_veiculos(texto)
-        self.carregar_lista_veiculos(
-            resultado,
-            self.scroll_veiculos
+    def atualizar_lista_veiculos(self):
+        self.atualizar_lista_paginada(
+            "veiculos",
+            self.pesquisa_veiculo_entry.get(),
+            contar_veiculos_busca,
+            listar_veiculos_paginado,
+            self.carregar_lista_veiculos,
+            self.scroll_veiculos,
+            self.frame_paginacao_veiculos
         )
+
+    def pesquisar_veiculo(self, event=None):
+        self.paginas["veiculos"] = 1
+        self.atualizar_lista_veiculos()
 
     def editar_veiculo(self, id_veiculo):
         janela = ctk.CTkToplevel(self)
@@ -2608,7 +2750,18 @@ class AutoEletricaApp(ctk.CTk):
         btn_pesquisa_historico.pack(
             side="left"
         )
- 
+
+        self.paginas["historico"] = 1
+
+        self.frame_paginacao_historico = ctk.CTkFrame(
+            self.content_frame,
+            fg_color="transparent"
+        )
+        self.frame_paginacao_historico.pack(
+            side="bottom",
+            pady=10
+        )
+
         self.scroll_historico = ctk.CTkScrollableFrame(
             self.content_frame,
             width=1000,
@@ -2621,12 +2774,8 @@ class AutoEletricaApp(ctk.CTk):
             padx=20,
             pady=10
         )
- 
-        ordens = listar_ordens_entregues()
-        self.carregar_lista_historico(
-            ordens,
-            self.scroll_historico
-        )
+
+        self.atualizar_lista_historico()
 
     def carregar_lista_historico(self, ordens, scroll):
         for widget in scroll.winfo_children():
@@ -2765,19 +2914,20 @@ class AutoEletricaApp(ctk.CTk):
                 side="left"
             )
 
-    def pesquisar_historico(self, event=None):
-        texto = self.pesquisa_historico_entry.get()
- 
-        if texto.strip() == "":
-            resultado = listar_ordens_entregues()
-        else:
-            resultado = buscar_ordens_entregues(texto)
- 
-        self.carregar_lista_historico(
-            resultado,
-            self.scroll_historico
+    def atualizar_lista_historico(self):
+        self.atualizar_lista_paginada(
+            "historico",
+            self.pesquisa_historico_entry.get(),
+            contar_ordens_entregues_busca,
+            buscar_ordens_entregues_paginado,
+            self.carregar_lista_historico,
+            self.scroll_historico,
+            self.frame_paginacao_historico
         )
 
+    def pesquisar_historico(self, event=None):
+        self.paginas["historico"] = 1
+        self.atualizar_lista_historico()
 
     def baixar_pdf_os(self, id_ordem):
         try:
@@ -3244,6 +3394,17 @@ class AutoEletricaApp(ctk.CTk):
             side="left"
         )
 
+        self.paginas["estoque"] = 1
+
+        self.frame_paginacao_estoque = ctk.CTkFrame(
+            self.content_frame,
+            fg_color="transparent"
+        )
+        self.frame_paginacao_estoque.pack(
+            side="bottom",
+            pady=10
+        )
+
         self.scroll = ctk.CTkScrollableFrame(
             self.content_frame,
             width=1000,
@@ -3258,15 +3419,9 @@ class AutoEletricaApp(ctk.CTk):
             pady=10
         )
 
-        estoque = listar_estoque()
-
-        self.carregar_lista_estoque(
-            estoque,
-            self.scroll
-        )
+        self.atualizar_lista_estoque()
 
     def carregar_lista_estoque(self, estoque, scroll):
-
 
         for item in estoque:
 
@@ -3517,31 +3672,20 @@ class AutoEletricaApp(ctk.CTk):
                "Ela já foi utilizada em uma Ordem de Serviço."
             )
 
-    def pesquisar_peca(self, event=None):
-
-        texto = self.pesquisa_peca_entry.get()
-
-        resultado = buscar_pecas(texto)
-
-        for widget in self.scroll.winfo_children():
-
-            widget.destroy()
-
-        self.carregar_lista_estoque(
-            resultado,
-            self.scroll
+    def atualizar_lista_estoque(self):
+        self.atualizar_lista_paginada(
+            "estoque",
+            self.pesquisa_peca_entry.get(),
+            contar_pecas_busca,
+            listar_pecas_paginado,
+            self.carregar_lista_estoque,
+            self.scroll,
+            self.frame_paginacao_estoque
         )
 
-        if not resultado:
-
-            mensagem = ctk.CTkLabel(
-                self.scroll,
-                text="Nenhuma peça encontrada."
-            )
-
-            mensagem.pack(pady=20)
-
-            return
+    def pesquisar_peca(self, event=None):
+        self.paginas["estoque"] = 1
+        self.atualizar_lista_estoque()
 
     def mostrar_financeiro(self, aba_inicial="Resumo"):
         self.limpar_tela()
